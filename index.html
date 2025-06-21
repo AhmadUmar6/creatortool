@@ -248,35 +248,6 @@
             color: #0a0a0a;
         }
 
-        /* NEW: AI summary */
-        .ai-summary {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            padding: 15px;
-            margin: 10px 0;
-            font-size: 12px;
-        }
-        .ai-summary h3 {
-            margin-bottom: 10px;
-            color: #00ff41;
-        }
-        .ai-params {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
-        }
-        .ai-param {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-        }
-        .ai-param-label {
-            color: #aaa;
-        }
-        .ai-param-value {
-            color: #00ff41;
-        }
-
         /* NEW: Natural language input */
         .nl-container {
             display: none;
@@ -285,6 +256,94 @@
         #nlQuery {
             width: 100%;
             height: 80px;
+        }
+
+        /* NEW: Editable parameters */
+        .editable-params {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 15px;
+            margin: 10px 0;
+            display: none;
+        }
+        .editable-params h3 {
+            margin-bottom: 15px;
+            color: #00ff41;
+        }
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .param-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .param-group label {
+            color: #aaa;
+            font-size: 11px;
+        }
+        .param-input {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #00ff41;
+            padding: 8px;
+            font-family: inherit;
+        }
+        .param-input:focus {
+            outline: none;
+            border-color: #00ff41;
+        }
+        .keywords-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .keyword-tag {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 5px 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+        .remove-keyword {
+            cursor: pointer;
+            color: #ff4136;
+            font-size: 14px;
+        }
+        .add-keyword-container {
+            display: flex;
+            gap: 10px;
+        }
+        #newKeyword {
+            flex: 1;
+        }
+
+        /* NEW: Sorting bar */
+        .sort-bar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+            padding: 10px 0;
+            border-bottom: 1px solid #333;
+            display: none;
+        }
+        .sort-bar label {
+            color: #00ff41;
+            font-size: 12px;
+        }
+        .sort-select {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #00ff41;
+            padding: 5px 10px;
+            font-family: inherit;
         }
     </style>
 </head>
@@ -297,13 +356,13 @@
             <div>API: <span id="currentApi">1</span></div>
         </div>
 
-        <!-- NEW: Search mode toggle -->
+        <!-- Search mode toggle -->
         <div class="search-mode-toggle">
             <button id="advancedModeBtn" class="mode-btn active" onclick="setSearchMode('advanced')">ADVANCED SEARCH</button>
             <button id="naturalModeBtn" class="mode-btn" onclick="setSearchMode('natural')">NATURAL LANGUAGE SEARCH</button>
         </div>
 
-        <!-- NEW: Natural language input -->
+        <!-- Natural language input -->
         <div id="nlContainer" class="nl-container">
             <div class="form-group">
                 <label>NATURAL LANGUAGE QUERY</label>
@@ -312,35 +371,47 @@
             <button onclick="parseNaturalLanguage()">RUN QUERY</button>
         </div>
 
-        <!-- NEW: AI Parsing Summary -->
-        <div id="aiSummary" class="ai-summary" style="display: none;">
-            <h3>AI-PARSED PARAMETERS</h3>
-            <div class="ai-params">
-                <div class="ai-param">
-                    <span class="ai-param-label">KEYWORDS:</span>
-                    <span class="ai-param-value" id="aiKeywords">-</span>
+        <!-- Editable parameters -->
+        <div id="editableParams" class="editable-params">
+            <h3>EDIT PARAMETERS</h3>
+            <div class="params-grid">
+                <div class="param-group">
+                    <label>KEYWORDS</label>
+                    <div class="keywords-container" id="keywordsContainer">
+                        <!-- Keywords will be added here -->
+                    </div>
+                    <div class="add-keyword-container">
+                        <input type="text" id="newKeyword" class="param-input" placeholder="Add keyword">
+                        <button onclick="addKeyword()">+</button>
+                    </div>
                 </div>
-                <div class="ai-param">
-                    <span class="ai-param-label">MIN SUBS:</span>
-                    <span class="ai-param-value" id="aiMinSubs">-</span>
+                
+                <div class="param-group">
+                    <label for="editableMinSubs">MIN SUBSCRIBERS</label>
+                    <input type="number" id="editableMinSubs" class="param-input">
                 </div>
-                <div class="ai-param">
-                    <span class="ai-param-label">MAX SUBS:</span>
-                    <span class="ai-param-value" id="aiMaxSubs">-</span>
+                
+                <div class="param-group">
+                    <label for="editableMaxSubs">MAX SUBSCRIBERS</label>
+                    <input type="number" id="editableMaxSubs" class="param-input">
                 </div>
-                <div class="ai-param">
-                    <span class="ai-param-label">MIN VIEWS:</span>
-                    <span class="ai-param-value" id="aiMinViews">-</span>
+                
+                <div class="param-group">
+                    <label for="editableMinViews">MIN AVG VIEWS</label>
+                    <input type="number" id="editableMinViews" class="param-input">
                 </div>
-                <div class="ai-param">
-                    <span class="ai-param-label">COUNTRIES:</span>
-                    <span class="ai-param-value" id="aiCountries">-</span>
+                
+                <div class="param-group">
+                    <label for="editableCountries">COUNTRIES (comma separated)</label>
+                    <input type="text" id="editableCountries" class="param-input" placeholder="US,GB,CA">
                 </div>
-                <div class="ai-param">
-                    <span class="ai-param-label">HAS LIVE:</span>
-                    <span class="ai-param-value" id="aiHasLive">-</span>
+                
+                <div class="param-group">
+                    <label for="editableHasLive">HAS LIVE (last 3 months)</label>
+                    <input type="checkbox" id="editableHasLive">
                 </div>
             </div>
+            <button onclick="updateAndSearch()">UPDATE & SEARCH</button>
         </div>
 
         <!-- Advanced search section -->
@@ -405,7 +476,7 @@
                 </div>
             </div>
             
-            <!-- NEW: Lives filter checkbox -->
+            <!-- Lives filter checkbox -->
             <div class="filter-group">
                 <input type="checkbox" id="filterHasLive">
                 <label for="filterHasLive">Has Lives (last 3 months)</label>
@@ -421,6 +492,22 @@
         </div>
 
         <div class="log" id="logContainer"></div>
+
+        <!-- Sorting bar -->
+        <div class="sort-bar" id="sortBar">
+            <label>SORT BY:</label>
+            <select id="sortSelect" class="sort-select" onchange="sortResults()">
+                <option value="default">Default</option>
+                <option value="subscribers">Subscribers</option>
+                <option value="country">Country</option>
+                <option value="avgViews">Avg Views</option>
+                <option value="engagement">Engagement Rate</option>
+            </select>
+            <select id="sortDirection" class="sort-select" onchange="sortResults()">
+                <option value="desc">Descending</option>
+                <option value="asc">Ascending</option>
+            </select>
+        </div>
 
         <div class="results" id="results"></div>
     </div>
@@ -468,7 +555,7 @@
                     <input type="checkbox" id="col_country" checked>
                     <label for="col_country">Country</label>
                 </div>
-                <!-- NEW: Lives column for export -->
+                <!-- Lives column for export -->
                 <div class="checkbox-item">
                     <input type="checkbox" id="col_hasLive" checked>
                     <label for="col_hasLive">Has Lives</label>
@@ -492,5 +579,151 @@
     </div>
 
     <script src="algo.js"></script>
+    <script>
+        // Function to add a keyword to the editable parameters
+        function addKeyword() {
+            const keywordInput = document.getElementById('newKeyword');
+            const keyword = keywordInput.value.trim();
+            
+            if (keyword) {
+                const keywordsContainer = document.getElementById('keywordsContainer');
+                
+                // Create keyword tag
+                const tag = document.createElement('div');
+                tag.className = 'keyword-tag';
+                tag.innerHTML = `
+                    ${keyword}
+                    <span class="remove-keyword" onclick="removeKeyword(this)">×</span>
+                `;
+                
+                keywordsContainer.appendChild(tag);
+                keywordInput.value = '';
+            }
+        }
+        
+        // Function to remove a keyword
+        function removeKeyword(element) {
+            element.parentElement.remove();
+        }
+        
+        // Function to update parameters and start search
+        function updateAndSearch() {
+            // Collect keywords
+            const keywordTags = document.querySelectorAll('.keyword-tag');
+            const keywords = Array.from(keywordTags).map(tag => 
+                tag.textContent.replace('×', '').trim()
+            );
+            
+            // Update advanced search form
+            document.getElementById('keywords').value = keywords.join(', ');
+            document.getElementById('minSubs').value = document.getElementById('editableMinSubs').value;
+            document.getElementById('maxSubs').value = document.getElementById('editableMaxSubs').value;
+            document.getElementById('minViews').value = document.getElementById('editableMinViews').value;
+            document.getElementById('filterHasLive').checked = document.getElementById('editableHasLive').checked;
+            
+            // Update countries in advanced search
+            const countryCodes = document.getElementById('editableCountries').value
+                .split(',')
+                .map(code => code.trim().toUpperCase());
+                
+            const countryCheckboxes = document.querySelectorAll('#countriesContainer input[type="checkbox"]');
+            countryCheckboxes.forEach(checkbox => {
+                checkbox.checked = countryCodes.includes(checkbox.value);
+            });
+            
+            // Start the search
+            startFinder();
+        }
+        
+        // Function to sort results
+        function sortResults() {
+            const sortBy = document.getElementById('sortSelect').value;
+            const direction = document.getElementById('sortDirection').value;
+            
+            if (sortBy === 'default') {
+                // Return to original order if possible
+                if (window.originalResults) {
+                    finder.results = [...window.originalResults];
+                    renderResults();
+                }
+                return;
+            }
+            
+            // Sort the results
+            finder.results.sort((a, b) => {
+                let valA, valB;
+                
+                switch(sortBy) {
+                    case 'subscribers':
+                        valA = a.subscribers;
+                        valB = b.subscribers;
+                        break;
+                    case 'country':
+                        valA = a.country || 'ZZZ'; // Push "N/A" to bottom
+                        valB = b.country || 'ZZZ';
+                        break;
+                    case 'avgViews':
+                        valA = a.avgViews === 'N/A' ? -1 : a.avgViews;
+                        valB = b.avgViews === 'N/A' ? -1 : b.avgViews;
+                        break;
+                    case 'engagement':
+                        valA = a.engagement === 'N/A' ? -1 : a.engagement;
+                        valB = b.engagement === 'N/A' ? -1 : b.engagement;
+                        break;
+                    default:
+                        return 0;
+                }
+                
+                // Handle different value types
+                if (typeof valA === 'string' && typeof valB === 'string') {
+                    return direction === 'asc' 
+                        ? valA.localeCompare(valB) 
+                        : valB.localeCompare(valA);
+                } else {
+                    return direction === 'asc' 
+                        ? valA - valB 
+                        : valB - valA;
+                }
+            });
+            
+            renderResults();
+        }
+        
+        // Function to render sorted results
+        function renderResults() {
+            const resultsContainer = document.getElementById('results');
+            resultsContainer.innerHTML = '';
+            
+            finder.results.forEach(channel => {
+                // Create and append channel card
+                // (This is a simplified version - actual implementation would use finder.renderChannel)
+                const card = document.createElement('div');
+                card.className = 'channel-card';
+                card.innerHTML = `
+                    <a href="https://www.youtube.com/channel/${channel.id}" target="_blank" class="channel-link">
+                        <img src="${channel.thumbnail || ''}" alt="${channel.name}" class="channel-img">
+                        <div class="channel-info">
+                            <div class="channel-name">${channel.name}</div>
+                            <div class="channel-stats">
+                                <div><span class="stat-label">SUBS:</span> <span class="stat-value">${channel.subscribers.toLocaleString()}</span></div>
+                                <div><span class="stat-label">COUNTRY:</span> <span class="stat-value">${channel.country || 'N/A'}</span></div>
+                                <div><span class="stat-label">AVG_VIEWS:</span> <span class="stat-value">${channel.avgViews !== 'N/A' ? channel.avgViews.toLocaleString() : 'N/A'}</span></div>
+                                <div><span class="stat-label">ENGAGEMENT:</span> <span class="stat-value">${channel.engagement !== 'N/A' ? channel.engagement.toFixed(2) + '%' : 'N/A'}</span></div>
+                            </div>
+                        </div>
+                    </a>
+                `;
+                resultsContainer.appendChild(card);
+            });
+        }
+        
+        // Save original results when search completes
+        const originalStartFinder = finder.startFinder;
+        finder.startFinder = async function() {
+            await originalStartFinder.apply(this, arguments);
+            window.originalResults = [...this.results];
+            document.getElementById('sortBar').style.display = 'flex';
+        };
+    </script>
 </body>
 </html>

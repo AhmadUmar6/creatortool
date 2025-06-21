@@ -346,6 +346,7 @@ class CreatorFinder {
         const channelData = {
             id: channel.id,
             name: channel.snippet.title,
+            thumbnail: channel.snippet.thumbnails?.default?.url || '',
             subscribers: parseInt(channel.statistics.subscriberCount || 0),
             avgViews: metrics?.avgViews || 'N/A',
             engagement: metrics?.engagement || 'N/A',
@@ -525,6 +526,10 @@ class CreatorFinder {
             this.log(`FINISHED: Used ${this.quotaUsed} quota points`);
             document.getElementById('exportBtn').disabled = false;
             
+            // Save original results and show sort bar
+            window.originalResults = [...this.results];
+            document.getElementById('sortBar').style.display = 'flex';
+            
         } catch (error) {
             this.log(`FATAL_ERROR: ${error.message}`);
             this.updateProgress('ERROR', 0);
@@ -538,6 +543,7 @@ const finder = new CreatorFinder();
 
 // Global list to store user's selections
 window.myListChannels = [];
+window.originalResults = [];
 
 // Set search mode (advanced or natural language)
 function setSearchMode(mode) {
@@ -545,20 +551,20 @@ function setSearchMode(mode) {
     const naturalBtn = document.getElementById('naturalModeBtn');
     const advancedSection = document.getElementById('advancedSearchSection');
     const nlContainer = document.getElementById('nlContainer');
-    const aiSummary = document.getElementById('aiSummary');
+    const editableParams = document.getElementById('editableParams');
     
     if (mode === 'advanced') {
         advancedBtn.classList.add('active');
         naturalBtn.classList.remove('active');
         advancedSection.style.display = 'block';
         nlContainer.style.display = 'none';
-        aiSummary.style.display = 'none';
+        editableParams.style.display = 'none';
     } else {
         advancedBtn.classList.remove('active');
         naturalBtn.classList.add('active');
         advancedSection.style.display = 'none';
         nlContainer.style.display = 'block';
-        aiSummary.style.display = 'none'; // Hide until we have results
+        editableParams.style.display = 'none';
     }
 }
 
@@ -580,7 +586,7 @@ async function parseNaturalLanguage() {
                 'Authorization': 'Bearer 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'
             },
             body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile', // Updated to correct model name
+                model: 'llama-3.3-70b-versatile',
                 messages: [
                     {
                         role: 'system',
@@ -627,7 +633,6 @@ async function parseNaturalLanguage() {
                 ],
                 temperature: 0.8,
                 max_tokens: 500
-                // Removed response_format parameter as it might not be supported in the same way
             })
         });
         
@@ -644,7 +649,6 @@ async function parseNaturalLanguage() {
             const content = data.choices[0].message.content.trim();
             
             // Try to parse the content as JSON
-            // Sometimes the response might have extra text, so we'll try to extract just the JSON part
             const jsonMatch = content.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 jsonResponse = JSON.parse(jsonMatch[0]);
@@ -660,11 +664,11 @@ async function parseNaturalLanguage() {
         // Validate and set the parameters
         setParametersFromAI(jsonResponse);
         
-        // Update AI summary UI
-        updateAISummary(jsonResponse);
+        // Populate editable parameters
+        populateEditableParams(jsonResponse);
         
-        // Show the AI summary
-        document.getElementById('aiSummary').style.display = 'block';
+        // Show the editable parameters section
+        document.getElementById('editableParams').style.display = 'block';
         
         finder.log('AI successfully parsed natural language query');
     } catch (error) {
@@ -703,37 +707,203 @@ function setParametersFromAI(aiParams) {
     document.getElementById('filterHasLive').checked = aiParams.hasLive === true;
 }
 
-// Update AI summary UI with parsed parameters
-function updateAISummary(aiParams) {
-    document.getElementById('aiKeywords').textContent = aiParams.keywords.join(', ') || '-';
-    document.getElementById('aiMinSubs').textContent = aiParams.minSubscribers || '1000 (default)';
-    document.getElementById('aiMaxSubs').textContent = aiParams.maxSubscribers || '200000 (default)';
-    document.getElementById('aiMinViews').textContent = aiParams.minAvgViews || '1000 (default)';
+// Populate editable parameters from AI response
+function populateEditableParams(aiParams) {
+    const keywordsContainer = document.getElementById('keywordsContainer');
+    keywordsContainer.innerHTML = '';
     
-    // Map country codes to names
-    const countryNames = {
-        'US': 'United States',
-        'GB': 'United Kingdom',
-        'CA': 'Canada',
-        'AU': 'Australia',
-        'DE': 'Germany',
-        'FR': 'France',
-        'ES': 'Spain',
-        'IN': 'India',
-        'PK': 'Pakistan'
-    };
+    // Add keywords as tags
+    if (aiParams.keywords && aiParams.keywords.length > 0) {
+        aiParams.keywords.forEach(keyword => {
+            const tag = document.createElement('div');
+            tag.className = 'keyword-tag';
+            tag.innerHTML = `
+                ${keyword}
+                <span class="remove-keyword" onclick="removeKeyword(this)">×</span>
+            `;
+            keywordsContainer.appendChild(tag);
+        });
+    }
     
-    const countries = aiParams.countries && aiParams.countries.length > 0 ? 
-        aiParams.countries.map(code => countryNames[code] || code).join(', ') : 
-        'All countries';
+    // Set other parameters
+    document.getElementById('editableMinSubs').value = 
+        aiParams.minSubscribers !== null && aiParams.minSubscribers !== undefined 
+        ? aiParams.minSubscribers 
+        : 1000;
         
-    document.getElementById('aiCountries').textContent = countries;
-    document.getElementById('aiHasLive').textContent = aiParams.hasLive ? 'Yes' : 'No';
+    document.getElementById('editableMaxSubs').value = 
+        aiParams.maxSubscribers !== null && aiParams.maxSubscribers !== undefined 
+        ? aiParams.maxSubscribers 
+        : 200000;
+        
+    document.getElementById('editableMinViews').value = 
+        aiParams.minAvgViews !== null && aiParams.minAvgViews !== undefined 
+        ? aiParams.minAvgViews 
+        : 1000;
+        
+    document.getElementById('editableHasLive').checked = 
+        aiParams.hasLive === true;
+        
+    // Set countries as comma-separated string
+    document.getElementById('editableCountries').value = 
+        aiParams.countries && aiParams.countries.length > 0 
+        ? aiParams.countries.join(', ') 
+        : '';
+}
+
+// Add keyword to editable parameters
+function addKeyword() {
+    const keywordInput = document.getElementById('newKeyword');
+    const keyword = keywordInput.value.trim();
+    
+    if (keyword) {
+        const keywordsContainer = document.getElementById('keywordsContainer');
+        
+        // Create keyword tag
+        const tag = document.createElement('div');
+        tag.className = 'keyword-tag';
+        tag.innerHTML = `
+            ${keyword}
+            <span class="remove-keyword" onclick="removeKeyword(this)">×</span>
+        `;
+        
+        keywordsContainer.appendChild(tag);
+        keywordInput.value = '';
+    }
+}
+
+// Remove keyword from editable parameters
+function removeKeyword(element) {
+    element.parentElement.remove();
+}
+
+// Update parameters and start search
+function updateAndSearch() {
+    // Collect keywords
+    const keywordTags = document.querySelectorAll('.keyword-tag');
+    const keywords = Array.from(keywordTags).map(tag => 
+        tag.textContent.replace('×', '').trim()
+    );
+    
+    // Update advanced search form
+    document.getElementById('keywords').value = keywords.join(', ');
+    document.getElementById('minSubs').value = document.getElementById('editableMinSubs').value;
+    document.getElementById('maxSubs').value = document.getElementById('editableMaxSubs').value;
+    document.getElementById('minViews').value = document.getElementById('editableMinViews').value;
+    document.getElementById('filterHasLive').checked = document.getElementById('editableHasLive').checked;
+    
+    // Update countries in advanced search
+    const countryCodes = document.getElementById('editableCountries').value
+        .split(',')
+        .map(code => code.trim().toUpperCase());
+        
+    const countryCheckboxes = document.querySelectorAll('#countriesContainer input[type="checkbox"]');
+    countryCheckboxes.forEach(checkbox => {
+        checkbox.checked = countryCodes.includes(checkbox.value);
+    });
+    
+    // Start the search
+    startFinder();
+}
+
+// Sort results based on selected criteria
+function sortResults() {
+    const sortBy = document.getElementById('sortSelect').value;
+    const direction = document.getElementById('sortDirection').value;
+    
+    if (sortBy === 'default') {
+        // Return to original order
+        finder.results = [...window.originalResults];
+        renderResults();
+        return;
+    }
+    
+    // Sort the results
+    finder.results.sort((a, b) => {
+        let valA, valB;
+        
+        switch(sortBy) {
+            case 'subscribers':
+                valA = a.subscribers;
+                valB = b.subscribers;
+                break;
+            case 'country':
+                valA = a.country || 'ZZZ'; // Push "N/A" to bottom
+                valB = b.country || 'ZZZ';
+                break;
+            case 'avgViews':
+                valA = a.avgViews === 'N/A' ? -1 : a.avgViews;
+                valB = b.avgViews === 'N/A' ? -1 : b.avgViews;
+                break;
+            case 'engagement':
+                valA = a.engagement === 'N/A' ? -1 : a.engagement;
+                valB = b.engagement === 'N/A' ? -1 : b.engagement;
+                break;
+            default:
+                return 0;
+        }
+        
+        // Handle different value types
+        if (typeof valA === 'string' && typeof valB === 'string') {
+            return direction === 'asc' 
+                ? valA.localeCompare(valB) 
+                : valB.localeCompare(valA);
+        } else {
+            return direction === 'asc' 
+                ? valA - valB 
+                : valB - valA;
+        }
+    });
+    
+    renderResults();
+}
+
+// Render sorted results
+function renderResults() {
+    const resultsContainer = document.getElementById('results');
+    resultsContainer.innerHTML = '';
+    
+    finder.results.forEach(channel => {
+        const card = document.createElement('div');
+        card.className = 'channel-card';
+        
+        // Format contacts for display
+        let contactsHtml = 'N/A';
+        if (channel.contacts.length > 0) {
+            contactsHtml = channel.contacts.map(contact => {
+                if (contact.includes('@')) {
+                    return `<a href="mailto:${contact}" target="_blank">${contact}</a>`;
+                } else {
+                    return `<a href="${contact}" target="_blank">${contact}</a>`;
+                }
+            }).join(', ');
+        }
+        
+        card.innerHTML = `
+            <a href="${channel.url}" target="_blank" class="channel-link">
+                <img src="${channel.thumbnail}" alt="${channel.name}" class="channel-img">
+                <div class="channel-info">
+                    <div class="channel-name">${channel.name}</div>
+                    <div class="channel-stats">
+                        <div><span class="stat-label">SUBS:</span> <span class="stat-value">${channel.subscribers.toLocaleString()}</span></div>
+                        <div><span class="stat-label">COUNTRY:</span> <span class="stat-value">${channel.country || 'N/A'}</span></div>
+                        <div><span class="stat-label">AVG_VIEWS:</span> <span class="stat-value">${channel.avgViews !== 'N/A' ? channel.avgViews.toLocaleString() : 'N/A'}</span></div>
+                        <div><span class="stat-label">ENGAGEMENT:</span> <span class="stat-value">${channel.engagement !== 'N/A' ? channel.engagement.toFixed(2) + '%' : 'N/A'}</span></div>
+                        <div class="stat-full-width"><span class="stat-label">CONTACT:</span> <span class="stat-value">${contactsHtml}</span></div>
+                    </div>
+                </div>
+            </a>
+            <button class="add-to-list">Add to my list</button>
+        `;
+        
+        resultsContainer.appendChild(card);
+    });
 }
 
 async function startFinder() {
     document.getElementById('startBtn').disabled = true;
     document.getElementById('exportBtn').disabled = true;
+    document.getElementById('sortBar').style.display = 'none';
     finder.quotaUsed = 0;
     finder.results = [];
     await finder.execute();
