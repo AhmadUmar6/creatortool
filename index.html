@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creator Finder</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'IBM Plex Mono', monospace; 
+            background: #0a0a0a; 
+            color: #00ff41; 
+            min-height: 100vh; 
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #00ff41; margin-bottom: 30px; font-size: 24px; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        label { color: #00ff41; font-size: 12px; }
+        input, select, textarea { 
+            background: #1a1a1a; 
+            border: 1px solid #333; 
+            color: #00ff41; 
+            padding: 10px; 
+            font-family: inherit; 
+            font-size: 12px;
+        }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #00ff41; }
+        button { 
+            background: #1a1a1a; 
+            border: 1px solid #00ff41; 
+            color: #00ff41; 
+            padding: 12px 24px; 
+            cursor: pointer; 
+            font-family: inherit; 
+            transition: all 0.2s;
+        }
+        button:hover { background: #00ff41; color: #0a0a0a; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .progress-container { margin: 20px 0; }
+        .progress-bar { 
+            background: #1a1a1a; 
+            height: 4px; 
+            border-radius: 2px; 
+            overflow: hidden; 
+            margin: 5px 0;
+        }
+        .progress-fill { 
+            height: 100%; 
+            background: #00ff41; 
+            width: 0; 
+            transition: width 0.3s;
+        }
+        .log { 
+            background: #1a1a1a; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-left: 3px solid #00ff41; 
+            font-size: 11px; 
+            max-height: 200px; 
+            overflow-y: auto;
+        }
+        .results { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-top: 30px; }
+        .channel-card { 
+            background: #1a1a1a; 
+            border: 1px solid #333; 
+            padding: 20px; 
+            display: flex; 
+            gap: 15px; 
+            align-items: center;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+        .channel-card:hover {
+            border-color: #00ff41;
+            background: #222;
+            transform: translateY(-2px);
+        }
+        .channel-card::after {
+            content: "↗";
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #00ff41;
+            font-size: 14px;
+        }
+        .channel-img { width: 60px; height: 60px; border-radius: 50%; background: #333; object-fit: cover; }
+        .channel-info { flex: 1; }
+        .channel-name { color: #00ff41; font-weight: 500; margin-bottom: 10px; font-size: 14px; }
+        .channel-stats { 
+            font-size: 12px; 
+            color: #888; 
+            line-height: 1.6;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        /* Contact info styling */
+        .stat-full-width {
+            grid-column: span 2;
+            margin-top: 8px;
+        }
+        .stat-value a {
+            color: #00ff41;
+            text-decoration: underline;
+            word-break: break-all;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .stat-label { color: #aaa; }
+        .stat-value { color: #00ff41; }
+        .quota-info { 
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            background: #1a1a1a; 
+            padding: 10px; 
+            border: 1px solid #333; 
+            font-size: 11px;
+        }
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.8); 
+            z-index: 1000;
+        }
+        .modal-content { 
+            background: #1a1a1a; 
+            border: 1px solid #00ff41; 
+            width: 400px; 
+            margin: 50px auto; 
+            padding: 20px;
+        }
+        .modal-title { color: #00ff41; margin-bottom: 20px; }
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .checkbox-item { display: flex; align-items: center; gap: 10px; }
+        .checkbox-item input[type="checkbox"] { accent-color: #00ff41; }
+        .countries-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
+            margin-top: 5px;
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 5px;
+            border: 1px solid #333;
+            background: #1a1a1a;
+        }
+        .country-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .country-item label {
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        /* Color coding for metrics */
+        .stat-value.good { color: #00ff41; }
+        .stat-value.average { color: yellow; }
+        .stat-value.poor { color: red; }
+        
+        /* List button styles */
+        .add-to-list {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            font-size: 11px;
+            background: #1a1a1a;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 2;
+        }
+        .add-to-list:hover {
+            background: #333;
+        }
+        .add-to-list.added {
+            background: #00ff41;
+            color: #0a0a0a;
+        }
+        .channel-link {
+            display: block;
+            text-decoration: none;
+            color: inherit;
+            flex: 1;
+            padding-bottom: 30px;
+        }
+        
+        /* Export source selection */
+        .export-source {
+            margin-bottom: 15px;
+            padding: 10px 0;
+            border-bottom: 1px solid #333;
+        }
+        .export-source label {
+            display: block;
+            margin-bottom: 8px;
+        }
+        .export-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+        
+        /* NEW: Lives filter */
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        /* NEW: Search mode toggle */
+        .search-mode-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .mode-btn {
+            flex: 1;
+        }
+        .mode-btn.active {
+            background: #00ff41;
+            color: #0a0a0a;
+        }
+
+        /* NEW: AI summary */
+        .ai-summary {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+        .ai-summary h3 {
+            margin-bottom: 10px;
+            color: #00ff41;
+        }
+        .ai-params {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .ai-param {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .ai-param-label {
+            color: #aaa;
+        }
+        .ai-param-value {
+            color: #00ff41;
+        }
+
+        /* NEW: Natural language input */
+        .nl-container {
+            display: none;
+            margin-bottom: 20px;
+        }
+        #nlQuery {
+            width: 100%;
+            height: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Search for youtube creators</h1>
+        
+        <div class="quota-info">
+            <div>QUOTA: <span id="quotaUsed">0</span></div>
+            <div>API: <span id="currentApi">1</span></div>
+        </div>
+
+        <!-- NEW: Search mode toggle -->
+        <div class="search-mode-toggle">
+            <button id="advancedModeBtn" class="mode-btn active" onclick="setSearchMode('advanced')">ADVANCED SEARCH</button>
+            <button id="naturalModeBtn" class="mode-btn" onclick="setSearchMode('natural')">NATURAL LANGUAGE SEARCH</button>
+        </div>
+
+        <!-- NEW: Natural language input -->
+        <div id="nlContainer" class="nl-container">
+            <div class="form-group">
+                <label>NATURAL LANGUAGE QUERY</label>
+                <textarea id="nlQuery" placeholder="Example: find me fc barcelona streamers that are talking about transfer news of players like nico williams and joan garcia etc, should be based in us,uk,spain and have subs 10k-300k"></textarea>
+            </div>
+            <button onclick="parseNaturalLanguage()">PARSE QUERY</button>
+        </div>
+
+        <!-- NEW: AI Parsing Summary -->
+        <div id="aiSummary" class="ai-summary" style="display: none;">
+            <h3>AI-PARSED PARAMETERS</h3>
+            <div class="ai-params">
+                <div class="ai-param">
+                    <span class="ai-param-label">KEYWORDS:</span>
+                    <span class="ai-param-value" id="aiKeywords">-</span>
+                </div>
+                <div class="ai-param">
+                    <span class="ai-param-label">MIN SUBS:</span>
+                    <span class="ai-param-value" id="aiMinSubs">-</span>
+                </div>
+                <div class="ai-param">
+                    <span class="ai-param-label">MAX SUBS:</span>
+                    <span class="ai-param-value" id="aiMaxSubs">-</span>
+                </div>
+                <div class="ai-param">
+                    <span class="ai-param-label">MIN VIEWS:</span>
+                    <span class="ai-param-value" id="aiMinViews">-</span>
+                </div>
+                <div class="ai-param">
+                    <span class="ai-param-label">COUNTRIES:</span>
+                    <span class="ai-param-value" id="aiCountries">-</span>
+                </div>
+                <div class="ai-param">
+                    <span class="ai-param-label">HAS LIVE:</span>
+                    <span class="ai-param-value" id="aiHasLive">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced search section -->
+        <div id="advancedSearchSection">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>KEYWORDS (COMMA SEPARATED)</label>
+                    <input type="text" id="keywords" placeholder="real madrid news, chelsea signings">
+                </div>
+                <div class="form-group">
+                    <label>MIN SUBSCRIBERS</label>
+                    <input type="number" id="minSubs" value="1000">
+                </div>
+                <div class="form-group">
+                    <label>MAX SUBSCRIBERS</label>
+                    <input type="number" id="maxSubs" value="200000">
+                </div>
+                <div class="form-group">
+                    <label>MIN AVG VIEWS</label>
+                    <input type="number" id="minViews" value="1000">
+                </div>
+                <div class="form-group">
+                    <label>COUNTRIES</label>
+                    <div class="countries-grid" id="countriesContainer">
+                        <div class="country-item">
+                            <input type="checkbox" id="country_US" value="US">
+                            <label for="country_US">United States</label>
+                        </div>
+                        <div class="country-item">
+                            <input type="checkbox" id="country_GB" value="GB">
+                            <label for="country_GB">United Kingdom</label>
+                        </div>
+                        <div class="country-item">
+                            <input type="checkbox" id="country_CA" value="CA">
+                            <label for="country_CA">Canada</label>
+                        </div>
+                        <div class="country-item">
+                            <input type="checkbox" id="country_AU" value="AU">
+                            <label for="country_AU">Australia</label>
+                        </div>
+                        <div class="country-item">
+                            <input type="checkbox" id="country_DE" value="DE">
+                            <label for="country_DE">Germany</label>
+                        </div>
+                        <div class="country-item">
+                            <input type="checkbox" id="country_FR" value="FR">
+                            <label for="country_FR">France</label>
+                        </div>
+                        <div class="country-item">
+                            <input type="checkbox" id="country_ES" value="ES">
+                            <label for="country_ES">Spain</label>
+                        </div>
+                        <div class="country-item">
+                            <input type="checkbox" id="country_IN" value="IN">
+                            <label for="country_IN">India</label>
+                        </div>
+                        <div class="country-item">
+                            <input type="checkbox" id="country_PK" value="PK">
+                            <label for="country_PK">Pakistan</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- NEW: Lives filter checkbox -->
+            <div class="filter-group">
+                <input type="checkbox" id="filterHasLive">
+                <label for="filterHasLive">Has Lives (last 3 months)</label>
+            </div>
+        </div>
+
+        <button id="startBtn" onclick="startFinder()">EXECUTE_FINDER</button>
+        <button id="exportBtn" onclick="showExportModal()" disabled>EXPORT_CSV</button>
+
+        <div class="progress-container">
+            <div>PROGRESS: <span id="progressText">READY</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="progressBar"></div></div>
+        </div>
+
+        <div class="log" id="logContainer"></div>
+
+        <div class="results" id="results"></div>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <div class="modal-title">SELECT EXPORT COLUMNS</div>
+            
+            <!-- Export source selection -->
+            <div class="export-source">
+                <label>EXPORT SOURCE:</label>
+                <div class="export-option">
+                    <input type="radio" id="exportAll" name="exportSource" value="all" checked>
+                    <label for="exportAll">Entire Database</label>
+                </div>
+                <div class="export-option">
+                    <input type="radio" id="exportMyList" name="exportSource" value="myList">
+                    <label for="exportMyList">My List</label>
+                </div>
+            </div>
+            
+            <div class="checkbox-grid">
+                <div class="checkbox-item">
+                    <input type="checkbox" id="col_name" checked>
+                    <label for="col_name">Channel Name</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="col_subs" checked>
+                    <label for="col_subs">Subscribers</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="col_views" checked>
+                    <label for="col_views">Avg Views</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="col_engagement" checked>
+                    <label for="col_engagement">Engagement Rate</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="col_ratio" checked>
+                    <label for="col_ratio">Views/Subs Ratio</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="col_country" checked>
+                    <label for="col_country">Country</label>
+                </div>
+                <!-- NEW: Lives column for export -->
+                <div class="checkbox-item">
+                    <input type="checkbox" id="col_hasLive" checked>
+                    <label for="col_hasLive">Has Lives</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="col_link" checked>
+                    <label for="col_link">Channel Link</label>
+                </div>
+                <div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="col_link" checked>
+                        <label for="col_contacts">Contact Info</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button onclick="closeExportModal()">CANCEL</button>
+                <button onclick="exportCSV()">EXPORT</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="algo.js"></script>
+</body>
+</html>
