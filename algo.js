@@ -20,7 +20,18 @@ class CreatorFinder {
             'AIzaSyBQiO5EcypoQoLmQHJgmnGEgOAz8vi_KiQ',
             'AIzaSyDcckgur6N0wyB3Oo1XXUHbJNifpCt-xQU',
             'AIzaSyDHWKv4mkgt7ciDIlhm-6ewtxhPsUu1Knk',
-            'AIzaSyB3aoF8NG_uGylNMd1rLgOCathntFI9B0o'   
+            'AIzaSyB3aoF8NG_uGylNMd1rLgOCathntFI9B0o',
+            'AIzaSyBlEZDP644tOQ8BF7sQgYCYkpXWg4sPUBo',
+            'AIzaSyA12s4sWQ8ClOi2nzJClH5t6UvzMEvHo84',
+            'AIzaSyCkx5sIbnHqCEp4JxnkqcYGgn1pMIJivNk',
+            'AIzaSyAJGVVEVL6D3XeH-BdqYbnro_3vXOVt4rk',
+            'AIzaSyCCwWGxj7kzSE5yV5QzRbYWTKVLzTD8Wm0',
+            'AIzaSyCZe4FdgYYGMOdNsXwr86MdgmZCy-n1T4I',
+            'AIzaSyAov4vg5G2z9VixaLfPTCycTar8-z6S5vM',
+            'AIzaSyCWEP-hds047eC170NjiRGfPpE9xuFi0K8',
+            'AIzaSyBlRhR8-dhIhI1wu_XDLf9Z-rDHx9erJ8s',
+            'AIzaSyA4Ix79EAsANrhIlnGGMDK4XPck_tgfkUI',
+            'AIzaSyCMAEf2R3gma3adN4E6qFLWyDZVXH3HQBY'
         ];
         this.currentKeyIndex = 0;
         this.quotaUsed = 0;
@@ -595,7 +606,7 @@ async function parseNaturalLanguage() {
                         }
                         
                         Fill in the values based on the user's query. Use your knowledge to infer the appropriate values.
-                        Do not include any text before or after the JSON object. Remember to give intellgent and not overly generic keywords.KEYWORDS SHOULD BE ALL RELATED TO THE MAIN SUBJECT OF THE QUERY. GIVE 8 KEYWORDS.
+                        Do not include any text before or after the JSON object. Remember to give intellgent and not overly generic keywords.KEYWORDS SHOULD BE ALL RELATED TO THE MAIN SUBJECT OF THE QUERY. GIVE 8 KEYWORDS. Please give keywords mostly relevant to the news and context of 2025.
                         
                         Example: 
                           Query: "find me real madrid streamers from spain mid range"
